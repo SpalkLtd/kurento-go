@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"strings"
+	"sync"
 
 	"golang.org/x/net/websocket"
 )
@@ -50,12 +51,14 @@ type Data struct {
 }
 
 type Connection struct {
-	clientId    float64
-	clients     map[float64]chan Response
-	subscribers map[string]map[string]chan Response
-	host        string
-	ws          *websocket.Conn
-	SessionId   string
+	clientId       float64
+	clientsLock    *sync.RWMutex
+	clients        map[float64]chan Response
+	subscriberLock *sync.RWMutex
+	subscribers    map[string]map[string]chan Response
+	host           string
+	ws             *websocket.Conn
+	SessionId      string
 }
 
 var connections = make(map[string]*Connection)
@@ -66,6 +69,8 @@ func NewConnection(host string) *Connection {
 	// }
 
 	c := new(Connection)
+	c.clientsLock = &sync.RWMutex{}
+	c.subscriberLock = &sync.RWMutex{}
 	connections[host] = c
 
 	c.clients = make(map[float64]chan Response)
@@ -89,10 +94,29 @@ func (c *Connection) Close() error {
 	return c.ws.Close()
 }
 
+func (c *Connection) GetClient(id float64) chan Response {
+	c.clientsLock.RLock()
+	defer c.clientsLock.RUnlock()
+	return c.clients[id]
+}
+
+func (c *Connection) DeleteClient(id float64) {
+	c.clientsLock.Lock()
+	defer c.clientsLock.Unlock()
+	delete(c.clients, id)
+}
+
+func (c *Connection) GetSubscriber(t, source string) chan Response {
+	c.subscriberLock.Lock()
+	defer c.subscriberLock.Unlock()
+	return c.subscribers[t][source]
+}
+
 func (c *Connection) handleResponse() {
 	var err error
 	var test string
 	var r Response
+	var client, subscriber chan Response
 	for { // run forever
 		r = Response{}
 		if debug {
@@ -115,18 +139,20 @@ func (c *Connection) handleResponse() {
 			c.SessionId = r.Result.SessionId
 		}
 		// if webscocket client exists, send response to the chanel
-		if c.clients[r.Id] != nil {
-			go func(r Response) {
-				c.clients[r.Id] <- r
+		client = c.GetClient(r.Id)
+		subscriber = c.GetSubscriber(r.Params.Value.Data.Type, r.Params.Value.Data.Source)
+		if client != nil {
+			go func(r Response, ch chan Response) {
+				ch <- r
 				// channel is read, we can delete it
-				close(c.clients[r.Id])
-				delete(c.clients, r.Id)
-			}(r)
-		} else if r.Method == "onEvent" && c.subscribers[r.Params.Value.Data.Type][r.Params.Value.Data.Source] != nil {
+				close(ch)
+			}(r, client)
+			c.DeleteClient(r.Id)
+		} else if r.Method == "onEvent" && subscriber != nil {
 			// Need to send it to the channel created on subscription
-			go func(r Response) {
-				c.subscribers[r.Params.Value.Data.Type][r.Params.Value.Data.Source] <- r
-			}(r)
+			go func(r Response, ch chan Response) {
+				ch <- r
+			}(r, subscriber)
 		} else if debug {
 			if r.Method == "" {
 				log.Println("Dropped message because there is no client ", r.Id)
@@ -140,6 +166,8 @@ func (c *Connection) handleResponse() {
 
 // Allow clients to subscribe to messages intended for them
 func (c *Connection) Subscribe(eventType string, elementId string) <-chan Response {
+	c.subscriberLock.Lock()
+	defer c.subscriberLock.Unlock()
 	if c.subscribers == nil {
 		c.subscribers = make(map[string]map[string]chan Response)
 	}
@@ -152,11 +180,15 @@ func (c *Connection) Subscribe(eventType string, elementId string) <-chan Respon
 
 // Allow clients to unsubscribe from messages intended for them
 func (c *Connection) Unsubscribe(eventType string, elementId string) {
+	c.subscriberLock.Lock()
+	defer c.subscriberLock.Unlock()
 	close(c.subscribers[eventType][elementId])
 	delete(c.subscribers[eventType], elementId)
 }
 
 func (c *Connection) Request(req map[string]interface{}) <-chan Response {
+	c.clientsLock.Lock()
+	defer c.clientsLock.Unlock()
 	c.clientId++
 	req["id"] = c.clientId
 	if c.SessionId != "" {

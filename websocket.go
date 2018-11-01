@@ -94,18 +94,21 @@ func (c *Connection) Close() error {
 	return c.ws.Close()
 }
 
+//GetClient obtains the client read lock and defers the unlock
 func (c *Connection) GetClient(id float64) chan Response {
 	c.clientsLock.RLock()
 	defer c.clientsLock.RUnlock()
 	return c.clients[id]
 }
 
+//DeleteClient obtains the client lock and defers the unlock
 func (c *Connection) DeleteClient(id float64) {
 	c.clientsLock.Lock()
 	defer c.clientsLock.Unlock()
 	delete(c.clients, id)
 }
 
+//GetSubscriber obtains the subscriber read lock and defers the unlock
 func (c *Connection) GetSubscriber(t, source string) chan Response {
 	c.subscriberLock.Lock()
 	defer c.subscriberLock.Unlock()

@@ -60,22 +60,14 @@ type Data struct {
 }
 
 type Connection struct {
-	clientId      float64
-	clientMap     threadsafeClientMap
-	subscriberMap threadsafeSubscriberMap
-	host          string
-	ws            *websocket.Conn
-	SessionId     string
-}
-
-type threadsafeClientMap struct {
-	clients map[float64]chan Response
-	lock    sync.RWMutex
-}
-
-type threadsafeSubscriberMap struct {
-	subscribers map[string]map[string]chan Response
-	lock        sync.RWMutex
+	clientId       float64
+	clientsLock    *sync.RWMutex
+	clients        map[float64]chan Response
+	subscriberLock *sync.RWMutex
+	subscribers    map[string]map[string]chan Response
+	host           string
+	ws             *websocket.Conn
+	SessionId      string
 }
 
 var connections = make(map[string]*Connection)
@@ -86,12 +78,11 @@ func NewConnection(host string) (*Connection, error) {
 	// }
 
 	c := new(Connection)
+	c.clientsLock = &sync.RWMutex{}
+	c.subscriberLock = &sync.RWMutex{}
 	connections[host] = c
 
-	c.clientMap = threadsafeClientMap{
-		clients: make(map[float64]chan Response),
-		lock:    sync.RWMutex{},
-	}
+	c.clients = make(map[float64]chan Response)
 	var err error
 
 	conf, err := websocket.NewConfig(host+"/kurento", "http://127.0.0.1")
@@ -118,10 +109,32 @@ func (c *Connection) Close() error {
 	return c.ws.Close()
 }
 
+//GetClient obtains the client read lock and defers the unlock
+func (c *Connection) GetClient(id float64) chan Response {
+	c.clientsLock.RLock()
+	defer c.clientsLock.RUnlock()
+	return c.clients[id]
+}
+
+//DeleteClient obtains the client lock and defers the unlock
+func (c *Connection) DeleteClient(id float64) {
+	c.clientsLock.Lock()
+	defer c.clientsLock.Unlock()
+	delete(c.clients, id)
+}
+
+//GetSubscriber obtains the subscriber read lock and defers the unlock
+func (c *Connection) GetSubscriber(t, source string) chan Response {
+	c.subscriberLock.Lock()
+	defer c.subscriberLock.Unlock()
+	return c.subscribers[t][source]
+}
+
 func (c *Connection) handleResponse() {
 	var err error
 	var test string
 	var r Response
+	var client, subscriber chan Response
 	for { // run forever
 		r = Response{}
 		if debug {
@@ -147,24 +160,20 @@ func (c *Connection) handleResponse() {
 			c.SessionId = r.Result.SessionId
 		}
 		// if webscocket client exists, send response to the chanel
-		c.clientMap.lock.RLock()
-		c.subscriberMap.lock.RLock()
-		if c.clientMap.clients[r.Id] != nil {
-			go func(r Response) {
-				c.clientMap.clients[r.Id] <- r
+		client = c.GetClient(r.Id)
+		subscriber = c.GetSubscriber(r.Params.Value.Data.Type, r.Params.Value.Data.Source)
+		if client != nil {
+			go func(r Response, ch chan Response) {
+				ch <- r
 				// channel is read, we can delete it
-				c.clientMap.lock.Lock()
-				close(c.clientMap.clients[r.Id])
-				delete(c.clientMap.clients, r.Id)
-				c.clientMap.lock.Unlock()
-			}(r)
-		} else if r.Method == "onEvent" && c.subscriberMap.subscribers[r.Params.Value.Data.Type][r.Params.Value.Data.Source] != nil {
+				close(ch)
+			}(r, client)
+			c.DeleteClient(r.Id)
+		} else if r.Method == "onEvent" && subscriber != nil {
 			// Need to send it to the channel created on subscription
-			go func(r Response) {
-				c.subscriberMap.lock.RLock()
-				c.subscriberMap.subscribers[r.Params.Value.Data.Type][r.Params.Value.Data.Source] <- r
-				c.subscriberMap.lock.RUnlock()
-			}(r)
+			go func(r Response, ch chan Response) {
+				ch <- r
+			}(r, subscriber)
 		} else if debug {
 			if r.Method == "" {
 				log.Println("Dropped message because there is no client ", r.Id)
@@ -173,46 +182,44 @@ func (c *Connection) handleResponse() {
 			}
 			spew.Dump(r)
 		}
-		c.clientMap.lock.RUnlock()
-		c.subscriberMap.lock.RUnlock()
 	}
 }
 
 // Allow clients to subscribe to messages intended for them
 func (c *Connection) Subscribe(eventType string, elementId string) <-chan Response {
-	c.subscriberMap.lock.Lock()
-	defer c.subscriberMap.lock.Unlock()
-	if c.subscriberMap.subscribers == nil {
-		c.subscriberMap.subscribers = make(map[string]map[string]chan Response)
+	c.subscriberLock.Lock()
+	defer c.subscriberLock.Unlock()
+	if c.subscribers == nil {
+		c.subscribers = make(map[string]map[string]chan Response)
 	}
-	if _, ok := c.subscriberMap.subscribers[eventType]; !ok {
-		c.subscriberMap.subscribers[eventType] = make(map[string]chan Response)
+	if _, ok := c.subscribers[eventType]; !ok {
+		c.subscribers[eventType] = make(map[string]chan Response)
 	}
-	c.subscriberMap.subscribers[eventType][elementId] = make(chan Response)
-	return c.subscriberMap.subscribers[eventType][elementId]
+	c.subscribers[eventType][elementId] = make(chan Response)
+	return c.subscribers[eventType][elementId]
 }
 
 // Allow clients to unsubscribe from messages intended for them
 func (c *Connection) Unsubscribe(eventType string, elementId string) {
-	c.subscriberMap.lock.Lock()
-	defer c.subscriberMap.lock.Unlock()
-	close(c.subscriberMap.subscribers[eventType][elementId])
-	delete(c.subscriberMap.subscribers[eventType], elementId)
+	c.subscriberLock.Lock()
+	defer c.subscriberLock.Unlock()
+	close(c.subscribers[eventType][elementId])
+	delete(c.subscribers[eventType], elementId)
 }
 
 func (c *Connection) Request(req map[string]interface{}) <-chan Response {
+	c.clientsLock.Lock()
+	defer c.clientsLock.Unlock()
 	c.clientId++
 	req["id"] = c.clientId
 	if c.SessionId != "" {
 		req["sessionId"] = c.SessionId
 	}
-	c.clientMap.lock.Lock()
-	defer c.clientMap.lock.Unlock()
-	c.clientMap.clients[c.clientId] = make(chan Response)
+	c.clients[c.clientId] = make(chan Response)
 	if debug {
 		j, _ := json.MarshalIndent(req, "", "    ")
 		log.Println("json", string(j))
 	}
 	websocket.JSON.Send(c.ws, req)
-	return c.clientMap.clients[c.clientId]
+	return c.clients[c.clientId]
 }

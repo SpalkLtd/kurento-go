@@ -113,7 +113,7 @@ func NewConnection(host string) (*Connection, error) {
 
 func awaitClose(msgs chan string, closeSig chan bool, wg *sync.WaitGroup) {
 	msg := <-msgs
-	log.Println(fmt.Errorf("kurento: websocket closing with err%s", msg))
+	log.Println(fmt.Errorf("kurento: websocket closing with err: %s", msg))
 	close(closeSig)
 	wg.Wait()
 }
@@ -185,9 +185,7 @@ func (c *Connection) handleResponse() {
 		c.clientMap.lock.RLock()
 		c.subscriberMap.lock.RLock()
 		if c.clientMap.clients[r.Id] != nil {
-			c.closeWg.Add(1)
 			go func(r Response) {
-				defer c.closeWg.Done()
 				select {
 				case c.clientMap.clients[r.Id] <- r:
 				case <-c.closeSig:
@@ -200,9 +198,7 @@ func (c *Connection) handleResponse() {
 			}(r)
 		} else if r.Method == "onEvent" && c.subscriberMap.subscribers[r.Params.Value.Data.Type][r.Params.Value.Data.Source] != nil {
 			// Need to send it to the channel created on subscription
-			c.closeWg.Add(1)
 			go func(r Response) {
-				defer c.closeWg.Done()
 				c.subscriberMap.lock.RLock()
 				select {
 				case c.subscriberMap.subscribers[r.Params.Value.Data.Type][r.Params.Value.Data.Source] <- r:

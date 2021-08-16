@@ -1,6 +1,7 @@
 package kurento
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"reflect"
@@ -89,6 +90,39 @@ func (elem *MediaObject) Create(m IMediaObject, options map[string]interface{}) 
 		m.setId(trimQuotes(string(res.Result.Value)))
 	}
 	return res.Error
+}
+
+// Starts to send data to the endpoint `MediaSource`
+func (elem *MediaObject) GetGstreamerDot() (string, error) {
+	req := elem.getInvokeRequest()
+
+	req["params"] = map[string]interface{}{
+		"operation": "getElementGstreamerDot",
+		"object":    elem.Id,
+	}
+
+	// Call server and wait response
+	responses, err := elem.connection.Request(req)
+	if err != nil {
+		return "", err
+	}
+	var response Response
+	select {
+	case response = <-responses:
+		// Returns error or nil
+		if response.Error != nil {
+			return "", errors.New(fmt.Sprintf("[%d] %s %s", response.Error.Code, response.Error.Message, response.Error.Data))
+		}
+	case <-elem.connection.closeSig:
+		return "", ErrConnectionClosing
+	}
+	dot, err := response.Result.Value.MarshalJSON()
+
+	if err != nil {
+		return "", err
+	}
+	return string(dot), nil
+
 }
 
 // Create an object in memory that represents a remote object without creating it

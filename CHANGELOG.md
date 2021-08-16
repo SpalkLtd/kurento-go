@@ -4,3 +4,4 @@
 -  Remove `connections` map as it was unused and causing concurrent map write panics
 -  Fix goroutine management to match conventions
 -  Return error from connection.Request func to surface websocket errors correctly
+-  Add GetGstreamerDot() function to media elements

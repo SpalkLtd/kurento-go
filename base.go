@@ -113,7 +113,6 @@ func (elem *MediaObject) GetGstreamerDot() (string, error) {
 		if response.Error != nil {
 			return "", errors.New(fmt.Sprintf("[%d] %s %s", response.Error.Code, response.Error.Message, response.Error.Data))
 		}
-		// fmt.Println("RESP", string(response.Result.value))
 	case <-elem.connection.closeSig:
 		return "", ErrConnectionClosing
 	}

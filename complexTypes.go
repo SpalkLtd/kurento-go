@@ -216,7 +216,7 @@ type ElementStats struct {
 	IsRemote         bool    // false indicates that the statistics are measured locally, while true indicates that the measurements were done at the remote endpoint and reported in an RTCP RR/XR.
 	MediaTrackId     string  // Track identifier.
 	NackCount        uint64  // Count the total number of Negative ACKnowledgement (NACK) packets received by the sender and is sent by receiver.
-	PacketsLost      uint64  // Total number of RTP packets lost for this SSRC.
+	PacketsLost      int64   // Total number of RTP packets lost for this SSRC.
 	PliCount         uint64  // Count the total number of Packet Loss Indication (PLI) packets received by the sender and is sent by receiver.
 	Remb             uint64  // The Receiver Estimated Maximum Bitrate (REMB).
 	SliCount         uint64  // Count the total number of Slice Loss Indication (SLI) packets received by the sender.

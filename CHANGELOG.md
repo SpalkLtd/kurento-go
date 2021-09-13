@@ -5,3 +5,4 @@
 -  Fix goroutine management to match conventions
 -  Return error from connection.Request func to surface websocket errors correctly
 -  Add GetGstreamerDot() function to media elements
+-  Update ElementStats.PacketsLost field to int64, rather than uint64.

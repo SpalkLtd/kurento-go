@@ -89,6 +89,9 @@ func (elem *MediaObject) Create(m IMediaObject, options map[string]interface{}) 
 		//m.setParent(elem)
 		m.setId(trimQuotes(string(res.Result.Value)))
 	}
+	if res.Error.IsNil() {
+		return nil
+	}
 	return res.Error
 }
 
@@ -110,7 +113,7 @@ func (elem *MediaObject) GetGstreamerDot() (string, error) {
 	select {
 	case response = <-responses:
 		// Returns error or nil
-		if response.Error != nil {
+		if response.Error.IsNil() {
 			return "", errors.New(fmt.Sprintf("[%d] %s %s", response.Error.Code, response.Error.Message, response.Error.Data))
 		}
 	case <-elem.connection.closeSig:

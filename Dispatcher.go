@@ -53,7 +53,7 @@ func (elem *Dispatcher) Connect(source HubPort, sink HubPort) error {
 	select {
 	case response := <-responses:
 		// Returns error or nil
-		if response.Error != nil {
+		if response.Error.IsNil() {
 			return errors.New(fmt.Sprintf("[%d] %s %s", response.Error.Code, response.Error.Message, response.Error.Data))
 		}
 	case <-elem.connection.closeSig:

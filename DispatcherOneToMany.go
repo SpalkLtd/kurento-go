@@ -53,7 +53,7 @@ func (elem *DispatcherOneToMany) SetSource(source HubPort) error {
 	select {
 	case response := <-responses:
 		// Returns error or nil
-		if response.Error != nil {
+		if response.Error.IsNil() {
 			return errors.New(fmt.Sprintf("[%d] %s %s", response.Error.Code, response.Error.Message, response.Error.Data))
 		}
 	case <-elem.connection.closeSig:
@@ -81,7 +81,7 @@ func (elem *DispatcherOneToMany) RemoveSource() error {
 	select {
 	case response := <-responses:
 		// Returns error or nil
-		if response.Error != nil {
+		if response.Error.IsNil() {
 			return errors.New(fmt.Sprintf("[%d] %s %s", response.Error.Code, response.Error.Message, response.Error.Data))
 		}
 	case <-elem.connection.closeSig:

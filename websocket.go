@@ -26,6 +26,10 @@ func (e *Error) Error() string {
 	return e.Message
 }
 
+func (e *Error) IsNil() bool {
+	return e == nil
+}
+
 // Response represents server response
 type Response struct {
 	Jsonrpc string

@@ -56,7 +56,7 @@ func (elem *Mixer) Connect(media MediaType, source HubPort, sink HubPort) error 
 	select {
 	case response := <-responses:
 		// Returns error or nil
-		if response.Error.IsNil() {
+		if !response.Error.IsNil() {
 			return errors.New(fmt.Sprintf("[%d] %s %s", response.Error.Code, response.Error.Message, response.Error.Data))
 		}
 	case <-elem.connection.closeSig:
@@ -92,7 +92,7 @@ func (elem *Mixer) Disconnect(media MediaType, source HubPort, sink HubPort) err
 	select {
 	case response := <-responses:
 		// Returns error or nil
-		if response.Error.IsNil() {
+		if !response.Error.IsNil() {
 			return errors.New(fmt.Sprintf("[%d] %s %s", response.Error.Code, response.Error.Message, response.Error.Data))
 		}
 	case <-elem.connection.closeSig:

@@ -101,7 +101,7 @@ func (elem *HttpEndpoint) GetUrl() (string, error) {
 		return "", ErrConnectionClosing
 	}
 	// // The url as a String
-	if response.Error.IsNil() {
+	if !response.Error.IsNil() {
 		return "", errors.New(fmt.Sprintf("[%d] %s %s", response.Error.Code, response.Error.Message, response.Error.Data))
 	}
 	return trimQuotes(string(response.Result.Value)), nil

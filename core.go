@@ -169,7 +169,7 @@ func (elem *ServerManager) GetPipelines() ([]string, error) {
 	case <-elem.connection.closeSig:
 		return nil, ErrConnectionClosing
 	}
-	if response.Error.IsNil() {
+	if !response.Error.IsNil() {
 		return nil, fmt.Errorf("[%d] Error getting pipelnes: %s | %s", response.Error.Code, response.Error.Message, response.Error.Data)
 	}
 
@@ -336,7 +336,7 @@ func (elem *UriEndpoint) Pause() error {
 	select {
 	case response := <-responses:
 		// Returns error or nil
-		if response.Error.IsNil() {
+		if !response.Error.IsNil() {
 			return errors.New(fmt.Sprintf("[%d] %s %s", response.Error.Code, response.Error.Message, response.Error.Data))
 		}
 	case <-elem.connection.closeSig:
@@ -362,7 +362,7 @@ func (elem *UriEndpoint) Stop() error {
 	select {
 	case response := <-responses:
 		// Returns error or nil
-		if response.Error.IsNil() {
+		if !response.Error.IsNil() {
 			return errors.New(fmt.Sprintf("[%d] %s %s", response.Error.Code, response.Error.Message, response.Error.Data))
 		}
 	case <-elem.connection.closeSig:
@@ -410,7 +410,7 @@ func (elem *MediaObject) SetLatencyStats(value bool) error {
 	}
 	select {
 	case response := <-responses:
-		if response.Error.IsNil() {
+		if !response.Error.IsNil() {
 			return errors.New(fmt.Sprintf("[%d] %s %s", response.Error.Code, response.Error.Message, response.Error.Data))
 		}
 	case <-elem.connection.closeSig:
@@ -472,7 +472,7 @@ func (elem *SdpEndpoint) GenerateOffer() (string, error) {
 	}
 	// fmt.Println(response.Result["value"])
 	// // The SDP offer.
-	if response.Error.IsNil() {
+	if !response.Error.IsNil() {
 		return "", errors.New(fmt.Sprintf("[%d] %s %s", response.Error.Code, response.Error.Message, response.Error.Data))
 	}
 	return trimQuotes(string(response.Result.Value)), nil
@@ -509,7 +509,7 @@ func (elem *SdpEndpoint) ProcessOffer(offer string) (string, error) {
 	}
 
 	// // The chosen configuration from the ones stated in the SDP offer
-	if response.Error.IsNil() {
+	if !response.Error.IsNil() {
 		return "", errors.New(fmt.Sprintf("[%d] %s %s", response.Error.Code, response.Error.Message, response.Error.Data))
 	}
 	return trimQuotes(string(response.Result.Value)), nil
@@ -546,7 +546,7 @@ func (elem *SdpEndpoint) ProcessAnswer(answer string) (string, error) {
 	}
 
 	// // Updated SDP offer, based on the answer received.
-	if response.Error.IsNil() {
+	if !response.Error.IsNil() {
 		return "", errors.New(fmt.Sprintf("[%d] %s %s", response.Error.Code, response.Error.Message, response.Error.Data))
 	}
 	return trimQuotes(string(response.Result.Value)), nil
@@ -581,7 +581,7 @@ func (elem *SdpEndpoint) GetLocalSessionDescriptor() (string, error) {
 	}
 
 	// // The last agreed SessionSpec
-	if response.Error.IsNil() {
+	if !response.Error.IsNil() {
 		return "", errors.New(fmt.Sprintf("[%d] %s %s", response.Error.Code, response.Error.Message, response.Error.Data))
 	}
 	return trimQuotes(string(response.Result.Value)), nil
@@ -614,7 +614,7 @@ func (elem *SdpEndpoint) GetRemoteSessionDescriptor() (string, error) {
 	}
 
 	// // The last agreed User Agent session description
-	if response.Error.IsNil() {
+	if !response.Error.IsNil() {
 		return "", errors.New(fmt.Sprintf("[%d] %s %s", response.Error.Code, response.Error.Message, response.Error.Data))
 	}
 	return trimQuotes(string(response.Result.Value)), nil
@@ -711,7 +711,7 @@ func (elem *MediaElement) GetSourceConnections(mediaType MediaType, description 
 	// // The list will be empty if no sources are found.
 
 	ret := []ElementConnectionData{}
-	if response.Error.IsNil() {
+	if !response.Error.IsNil() {
 		return nil, errors.New(fmt.Sprintf("[%d] %s %s", response.Error.Code, response.Error.Message, response.Error.Data))
 	}
 	return &ret, nil
@@ -753,7 +753,7 @@ func (elem *MediaElement) GetSinkConnections(mediaType MediaType, description st
 	// // element. The list will be empty if no sinks are found.
 
 	ret := []ElementConnectionData{}
-	if response.Error.IsNil() {
+	if !response.Error.IsNil() {
 		return nil, errors.New(fmt.Sprintf("[%d] %s %s", response.Error.Code, response.Error.Message, response.Error.Data))
 	}
 	return &ret, nil
@@ -789,7 +789,7 @@ func (elem *MediaElement) Connect(sink IMediaElement, mediaType MediaType, sourc
 	case response := <-responses:
 
 		// Returns error or nil
-		if response.Error.IsNil() {
+		if !response.Error.IsNil() {
 			return errors.New(fmt.Sprintf("[%d] %s %s", response.Error.Code, response.Error.Message, response.Error.Data))
 		}
 	case <-elem.connection.closeSig:
@@ -827,7 +827,7 @@ func (elem *MediaElement) Disconnect(sink IMediaElement, mediaType MediaType, so
 	select {
 	case response := <-responses:
 		// Returns error or nil
-		if response.Error.IsNil() {
+		if !response.Error.IsNil() {
 			return errors.New(fmt.Sprintf("[%d] %s %s", response.Error.Code, response.Error.Message, response.Error.Data))
 		}
 	case <-elem.connection.closeSig:
@@ -861,7 +861,7 @@ func (elem *MediaElement) SetAudioFormat(caps AudioCaps) error {
 	select {
 	case response := <-responses:
 		// Returns error or nil
-		if response.Error.IsNil() {
+		if !response.Error.IsNil() {
 			return errors.New(fmt.Sprintf("[%d] %s %s", response.Error.Code, response.Error.Message, response.Error.Data))
 		}
 	case <-elem.connection.closeSig:
@@ -895,7 +895,7 @@ func (elem *MediaElement) SetVideoFormat(caps VideoCaps) error {
 	select {
 	case response := <-responses:
 		// Returns error or nil
-		if response.Error.IsNil() {
+		if !response.Error.IsNil() {
 			return errors.New(fmt.Sprintf("[%d] %s %s", response.Error.Code, response.Error.Message, response.Error.Data))
 		}
 	case <-elem.connection.closeSig:
@@ -930,7 +930,7 @@ func (elem *MediaElement) GetStats() (map[string]ElementStats, error) {
 		return nil, ErrConnectionClosing
 	}
 	// Check for error first
-	if response.Error.IsNil() {
+	if !response.Error.IsNil() {
 		return nil, errors.New(fmt.Sprintf("[%d] %s %s", response.Error.Code, response.Error.Message, response.Error.Data))
 	}
 	// Otherwise should try to get stuff

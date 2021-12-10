@@ -54,7 +54,7 @@ func (elem *AlphaBlending) SetMaster(source HubPort, zOrder int) error {
 	}
 	select {
 	case response := <-responses:
-		if response.Error.IsNil() {
+		if !response.Error.IsNil() {
 			return errors.New(fmt.Sprintf("[%d] %s %s", response.Error.Code, response.Error.Message, response.Error.Data))
 		}
 	case <-elem.connection.closeSig:
@@ -91,7 +91,7 @@ func (elem *AlphaBlending) SetPortProperties(relativeX float64, relativeY float6
 	}
 	select {
 	case response := <-responses:
-		if response.Error.IsNil() {
+		if !response.Error.IsNil() {
 			return errors.New(fmt.Sprintf("[%d] %s %s", response.Error.Code, response.Error.Message, response.Error.Data))
 		}
 	case <-elem.connection.closeSig:

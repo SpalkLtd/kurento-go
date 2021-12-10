@@ -57,7 +57,7 @@ func (elem *WebRtcEndpoint) GatherCandidates() error {
 	case response := <-responses:
 		// Otherwise we want to wait for the other candidates
 		// Returns error or nil
-		if response.Error.IsNil() {
+		if !response.Error.IsNil() {
 			return errors.New(fmt.Sprintf("[%d] %s %s", response.Error.Code, response.Error.Message, response.Error.Data))
 		}
 	case <-elem.connection.closeSig:
@@ -92,7 +92,7 @@ func (elem *WebRtcEndpoint) AddIceCandidate(candidate IceCandidate) error {
 	select {
 	case response := <-responses:
 		// Returns error or nil
-		if response.Error.IsNil() {
+		if !response.Error.IsNil() {
 			return errors.New(fmt.Sprintf("[%d] %s %s", response.Error.Code, response.Error.Message, response.Error.Data))
 		}
 	case <-elem.connection.closeSig:

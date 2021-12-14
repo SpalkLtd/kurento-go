@@ -90,9 +90,9 @@ func (elem *MediaObject) Create(m IMediaObject, options map[string]interface{}) 
 		m.setId(trimQuotes(string(res.Result.Value)))
 	}
 	if !res.Error.IsNil() {
-		return nil
+		return res.Error
 	}
-	return res.Error
+	return nil
 }
 
 // Starts to send data to the endpoint `MediaSource`

@@ -89,7 +89,7 @@ func (elem *MediaObject) Create(m IMediaObject, options map[string]interface{}) 
 		//m.setParent(elem)
 		m.setId(trimQuotes(string(res.Result.Value)))
 	}
-	if res.Error.IsNil() {
+	if !res.Error.IsNil() {
 		return nil
 	}
 	return res.Error

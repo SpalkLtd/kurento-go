@@ -62,7 +62,7 @@ func (elem *MediaObject) Subscribe(eventType string, handler SubscriptionHandler
 	case <-elem.connection.closeSig:
 		return ErrConnectionClosing
 	}
-	if message.Error.IsNil() {
+	if !message.Error.IsNil() {
 		log.Println("Error trying to subscribe to " + eventType)
 		return errors.New(fmt.Sprintf("[%d] %s %s", message.Error.Code, message.Error.Message, message.Error.Data))
 	}
@@ -76,7 +76,7 @@ func (elem *MediaObject) Subscribe(eventType string, handler SubscriptionHandler
 	}()
 
 	// Returns error or nil
-	if message.Error.IsNil() {
+	if !message.Error.IsNil() {
 		return errors.New(fmt.Sprintf("[%d] %s %s", message.Error.Code, message.Error.Message, message.Error.Data))
 	}
 	return nil
@@ -106,7 +106,7 @@ func (elem *MediaObject) Release() error {
 	case <-elem.connection.closeSig:
 		return ErrConnectionClosing
 	}
-	if message.Error.IsNil() {
+	if !message.Error.IsNil() {
 		log.Println("Error trying to release " + elem.Id)
 		return errors.New(fmt.Sprintf("[%d] %s %s", message.Error.Code, message.Error.Message, message.Error.Data))
 	}
@@ -115,7 +115,7 @@ func (elem *MediaObject) Release() error {
 	}
 
 	// Returns error or nil
-	if message.Error.IsNil() {
+	if !message.Error.IsNil() {
 		return errors.New(fmt.Sprintf("[%d] %s %s", message.Error.Code, message.Error.Message, message.Error.Data))
 	}
 	return nil

@@ -512,7 +512,7 @@ func (elem *SdpEndpoint) ProcessOffer(offer string) (string, error) {
 	if !response.Error.IsNil() {
 		return "", errors.New(fmt.Sprintf("[%d] %s %s", response.Error.Code, response.Error.Message, response.Error.Data))
 	}
-	return trimQuotes(string(response.Result.Value)), nil
+	return string(response.Result.Value), nil
 
 }
 
